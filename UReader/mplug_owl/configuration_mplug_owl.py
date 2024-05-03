@@ -236,7 +236,7 @@ class MplugOwlConfig(PretrainedConfig):
 
         if text_config is None:
             # we use LLAMA 7b by default
-            from transformers.llama.configuration_llama import LlamaConfig
+            from transformers.models.llama.configuration_llama import LlamaConfig
 
             text_config = LlamaConfig(pad_token_id=2).to_dict()
             logger.info("text_config is None.")
@@ -257,7 +257,7 @@ class MplugOwlConfig(PretrainedConfig):
         self.initializer_range = 0.02
 
         for attr in dir(self.text_config):
-            if not hasattr(self, attr):
+            if not hasattr(self, attr) and not attr.startswith('_'):
                 setattr(self, attr, getattr(self.text_config, attr))
 
     @classmethod

@@ -9,10 +9,11 @@ from torch.utils.data.distributed import DistributedSampler
 from sconf import Config
 from icecream import ic
 from peft import LoraConfig, get_peft_config, get_peft_model
-from transformers import Trainer
+from transformers import Trainer, AutoTokenizer
 from transformers.training_args import TrainingArguments
+from mplug_docowl.model import MPLUGDocOwlLlamaForCausalLM
+from mplug_docowl.processor import DocProcessor
 
-from mplug_owl import MplugOwlForConditionalGeneration, MplugOwlTokenizer
 from pipeline.data_utils import train_valid_test_datasets_provider
 from pipeline.utils import batchify, set_args
 from pipeline.trainer import CustomTrainer
@@ -48,7 +49,7 @@ parser.add_argument('--num-workers', type=int, default=8,
 parser.add_argument('--train-epochs', type=int, default=3,
                     help='Total number of epochs to train over all '
                     'training runs.')
-parser.add_argument('--micro-batch-size', type=int, default=8,
+parser.add_argument('--micro-batch-size', type=int, default=2,
                     help='Batch size per model instance (local batch size). '
                     'Global batch size is local batch size times data '
                     'parallel size times number of micro batches.')
@@ -130,46 +131,40 @@ def main():
     ic(args.gradient_accumulation_steps)
     set_args(args)
 
-    model = MplugOwlForConditionalGeneration.from_pretrained(
+    model = MPLUGDocOwlLlamaForCausalLM.from_pretrained(
         args.pretrained_ckpt,
         torch_dtype=torch.bfloat16 if args.bf16 else torch.float16,
     )
-    # if not args.bf16:
-    #     model = model.half()
-    tokenizer = MplugOwlTokenizer.from_pretrained(args.pretrained_ckpt)
+    tokenizer = AutoTokenizer.from_pretrained(args.pretrained_ckpt, use_fast=False)
+    
+    # tokenizer, model, _, _ = load_pretrained_model(ckpt_path, None, model_name, load_8bit=load_8bit, load_4bit=load_4bit, device="cuda")
 
-
-    for name, param in model.named_parameters():
-        if 'vision_model' in name:
-            # 默认vision不训练
-            param.requires_grad = False
-        elif 'language_model' in name:
-            # 下面根据language状态进行修改
-            param.requires_grad = False
-        else:
-            if args.freeze_v2t and ('query_tokens' in name or 'abstractor' in name):
-                # 如果freeze则不训练 默认打开
-                param.requires_grad = False
-                continue
-            param.requires_grad = True
-
+    # for name, param in model.named_parameters():
+    #     if 'vision_model' in name:
+    #         # 默认vision不训练
+    #         param.requires_grad = False
+    #     elif 'language_model' in name:
+    #         # 下面根据language状态进行修改
+    #         param.requires_grad = False
+    #     else:
+    #         if args.freeze_v2t and ('query_tokens' in name or 'abstractor' in name):
+    #             # 如果freeze则不训练 默认打开
+    #             param.requires_grad = False
+    #             continue
+    #         param.requires_grad = True
+    # model.model.layers = model.model.layers[:4]
     if args.language_training_method == 'lora':
         peft_config = LoraConfig(
             # target_modules=r'.*language_model.*\.(q_proj|v_proj)', 
-            target_modules=r'.*\.(q_proj|v_proj)', 
+            target_modules=r'model.layers.*\.(q_proj|v_proj.multiway.[0-9]+)', 
             inference_mode=args.inference_mode, 
-            r=args.lora_r, 
+            r=1, 
             lora_alpha=args.lora_alpha, 
             lora_dropout=args.lora_dropout
         )
-        model.language_model = get_peft_model(model.language_model, peft_config)
-        model.language_model.print_trainable_parameters()
-    elif args.language_training_method == 'training':
-        for param in model.parameters():
-            if 'language_model' in name:
-                param.requires_grad = True
-    else:
-        pass
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+
 
     if args.gradient_checkpointing:
         # abs do not use gradient checkpointing

@@ -64,22 +64,20 @@ class DocOwlInfer():
 
 if __name__ == '__main__':
 
-    ckpt_dir = './'
+    ckpt_dir = 'mPLUG'
     model_dir = 'DocOwl1.5-Chat'
     model_path = os.path.join(ckpt_dir, model_dir)
-    docowl = DocOwlInfer(ckpt_path=model_path, anchors='grid_9', add_global_img=True)
+    docowl = DocOwlInfer(ckpt_path=model_path, anchors='grid_9', load_4bit=True, add_global_img=True)
     print('load model from ', model_path)
     # exit(0)
 
     qas = [
         # docvqa case
-        {"image_path":"./DocDownstream-1.0/imgs/DUE_Benchmark/DocVQA/pngs/rnbx0223_193.png", 
-        "question":"What is the Compound Annual Growth Rate (CAGR) for total assets?"},
-        {"image_path":"./DocDownstream-1.0/imgs/DUE_Benchmark/DocVQA/pngs/rnbx0223_193.png", 
-        "question":"What is the Compound Annual Growth Rate (CAGR) for net worth?"},
+        {"image_path":"/home/azureuser/cloudfiles/code/Users/datasets/rico/images/0.jpg", 
+        "question":"describe image"}
     ]
     
-
+ 
     for qa in qas:
         image= qa['image_path'] 
         query = qa['question']
