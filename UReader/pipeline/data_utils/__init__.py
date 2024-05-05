@@ -24,7 +24,7 @@ def build_train_valid_test_datasets(input_file, tokenizer, max_length=80, config
 
     else:
         assert len(input_file) == 2 # If you have files more than 2, modify code at here or merger them into train and dev
-        train_ds = MultiModalDataset(input_file[0], tokenizer, train_processors, max_length)
-        valid_ds = MultiModalDataset(input_file[1], tokenizer, valid_processors, max_length)
+        train_ds = MultiModalDataset(input_file[0], tokenizer, train_processors, max_length,  image_root=image_root)
+        valid_ds = MultiModalDataset(input_file[1], tokenizer, valid_processors, max_length, image_root=image_root)
         test_ds = None
     return (train_ds, valid_ds)

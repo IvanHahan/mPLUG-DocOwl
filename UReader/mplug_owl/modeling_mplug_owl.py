@@ -1216,7 +1216,7 @@ class MplugOwlModel(MplugOwlPreTrainedModel):
 
 def get_media_indices(my_list, num_query_tokens):
     my_list = (my_list == -1).nonzero().squeeze(1)
-    assert len(my_list)%(num_query_tokens+1)==0
+    # assert len(my_list)%(num_query_tokens+1)==0
     my_list = my_list[::(num_query_tokens+1)]
     num_images = len(my_list)
     return my_list, num_images
@@ -1256,6 +1256,7 @@ class MplugOwlForConditionalGeneration(MplugOwlPreTrainedModel):
         )
         language_model = AutoModelForCausalLM.from_config(config.text_config)
         self.language_model = language_model
+        self.language_model.model.layers = self.language_model.model.layers[:2]
 
         # Initialize weights and apply final processing
         self.post_init()

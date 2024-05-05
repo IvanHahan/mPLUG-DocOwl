@@ -48,7 +48,7 @@ parser.add_argument('--num-workers', type=int, default=8,
 parser.add_argument('--train-epochs', type=int, default=3,
                     help='Total number of epochs to train over all '
                     'training runs.')
-parser.add_argument('--micro-batch-size', type=int, default=8,
+parser.add_argument('--micro-batch-size', type=int, default=2,
                     help='Batch size per model instance (local batch size). '
                     'Global batch size is local batch size times data '
                     'parallel size times number of micro batches.')
@@ -132,7 +132,7 @@ def main():
 
     model = MplugOwlForConditionalGeneration.from_pretrained(
         args.pretrained_ckpt,
-        torch_dtype=torch.bfloat16 if args.bf16 else torch.float16,
+        torch_dtype=torch.bfloat16 if args.bf16 else torch.float32,
     )
     # if not args.bf16:
     #     model = model.half()

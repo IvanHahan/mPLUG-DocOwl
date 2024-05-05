@@ -50,7 +50,7 @@ mkdir -p ${SAVE_PATH}
 mkdir -p ${TENSORBOARD_PATH}
 
 options=" \
-	--pretrained-ckpt checkpoints/mplug-owl-llama-7b \
+	--pretrained-ckpt mPLUG/DocOwl1.5-Chat \
 	--seq-length ${max_length} \
 	--micro-batch-size ${micro_batch_size} \
 	--global-batch-size ${global_batch_size} \
@@ -71,7 +71,7 @@ options=" \
 	--num-workers 16 \
 	--use-lora \
 	--gradient-checkpointing \
-	--bf16"
+	--image-root /home/azureuser/cloudfiles/code/Users/datasets/ureader-instruction-1.0"
 
 multimodal_options=" \
 	--mm-config configs/sft/release.yaml

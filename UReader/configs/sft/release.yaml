@@ -28,8 +28,8 @@ valid_processors: {
 }
 
 data_files: [
-  '/home/azureuser/cloudfiles/code/Users/datasets/DocDownstream-1.0/train.jsonl',
-  '/home/azureuser/cloudfiles/code/Users/datasets/DocDownstream-1.0/val.jsonl'
+  '/home/azureuser/cloudfiles/code/Users/datasets/ureader-instruction-1.0/ureader_json/test_TabFact.jsonl',
+  '/home/azureuser/cloudfiles/code/Users/datasets/ureader-instruction-1.0/ureader_json/test_TabFact.jsonl'
 ]
 # 654840
 
