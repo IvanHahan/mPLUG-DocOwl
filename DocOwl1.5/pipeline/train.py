@@ -133,8 +133,8 @@ def main():
 
     model = MPLUGDocOwlLlamaForCausalLM.from_pretrained(
         args.pretrained_ckpt,
-        torch_dtype=torch.bfloat16 if args.bf16 else torch.float16,
-    )
+        torch_dtype=torch.bfloat16 if args.bf16 else torch.float32,
+    ).half()
     tokenizer = AutoTokenizer.from_pretrained(args.pretrained_ckpt, use_fast=False)
     
     # tokenizer, model, _, _ = load_pretrained_model(ckpt_path, None, model_name, load_8bit=load_8bit, load_4bit=load_4bit, device="cuda")
@@ -149,7 +149,8 @@ def main():
     #     else:
     #         if args.freeze_v2t and ('query_tokens' in name or 'abstractor' in name):
     #             # 如果freeze则不训练 默认打开
-    #             param.requires_grad = False
+    #             param.requires_grad = 
+    # False
     #             continue
     #         param.requires_grad = True
     # model.model.layers = model.model.layers[:4]

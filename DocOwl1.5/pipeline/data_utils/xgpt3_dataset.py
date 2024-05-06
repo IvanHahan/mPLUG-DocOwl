@@ -55,8 +55,9 @@ import re
 from icecream import ic
 from datasets import load_dataset
 import requests
-from mplug_docowl.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
+from mplug_docowl.constants import IMAGE_TOKEN_INDEX, IGNORE_INDEX
 from mplug_docowl.mm_utils import process_images, tokenizer_image_token
+from mplug_docowl.conversation import conv_templates, SeparatorStyle
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -246,11 +247,25 @@ class MultiModalDataset(Dataset):
             try:
                 image = self.image_io._load_img(data['image'], image_root = self.image_root)
                 query = data['messages'][0]['content']
+                answer = data['messages'][1]['content']
                 image, patch_positions, text = self.processor(image, query)
-                input_ids = tokenizer_image_token(text, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt')
 
-                padding = 256 - len(input_ids)
-                input_ids = torch.cat([torch.ones(padding) * self.tokenizer.pad_token_id, input_ids]).long()
+                conv = conv_templates["mplug_owl2"].copy()
+
+                conv.append_message(conv.roles[0], text)
+                conv.append_message(conv.roles[1], answer)
+                prompt = conv.get_prompt()
+                question, answer = prompt.split('ASSISTANT: ')
+                question = question + 'ASSISTANT:'
+                answer_input_ids = self.tokenizer(answer).input_ids[1:]
+                input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt')
+                labels = input_ids.clone()
+                input_ids[-len(answer_input_ids):] = self.tokenizer.pad_token_id
+                labels[:-len(answer_input_ids)] = IGNORE_INDEX
+
+                padding = 1024 - len(input_ids)
+                input_ids = torch.cat([input_ids, torch.ones(padding) * self.tokenizer.pad_token_id]).long()
+                labels = torch.cat([labels, torch.ones(padding) * IGNORE_INDEX]).long()
 
 
             except Exception as e:
@@ -265,7 +280,8 @@ class MultiModalDataset(Dataset):
         batch_data = {
             "images": image,
             "patch_positions":patch_positions,
-            "input_ids": input_ids.unsqueeze(0)
+            "input_ids": input_ids.unsqueeze(0),
+            "labels": labels.unsqueeze(0)
         }
 
         return batch_data
