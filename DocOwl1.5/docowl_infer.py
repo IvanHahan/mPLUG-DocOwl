@@ -45,6 +45,7 @@ class DocOwlInfer():
         stopping_criteria = KeywordsStoppingCriteria(keywords, self.tokenizer, input_ids)
 
         with torch.inference_mode():
+            # output_ids = self.model(input_ids, images=image_tensor, patch_positions=patch_positions).logits.argmax(-1)
             output_ids = self.model.generate(
                 input_ids,
                 images=image_tensor,

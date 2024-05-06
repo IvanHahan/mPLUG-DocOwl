@@ -133,33 +133,16 @@ def main():
 
     model = MPLUGDocOwlLlamaForCausalLM.from_pretrained(
         args.pretrained_ckpt,
-        torch_dtype=torch.bfloat16 if args.bf16 else torch.float32,
-    ).half()
+        torch_dtype=torch.bfloat16 if args.bf16 else torch.float16,
+    )#.half()
     tokenizer = AutoTokenizer.from_pretrained(args.pretrained_ckpt, use_fast=False)
     
-    # tokenizer, model, _, _ = load_pretrained_model(ckpt_path, None, model_name, load_8bit=load_8bit, load_4bit=load_4bit, device="cuda")
-
-    # for name, param in model.named_parameters():
-    #     if 'vision_model' in name:
-    #         # 默认vision不训练
-    #         param.requires_grad = False
-    #     elif 'language_model' in name:
-    #         # 下面根据language状态进行修改
-    #         param.requires_grad = False
-    #     else:
-    #         if args.freeze_v2t and ('query_tokens' in name or 'abstractor' in name):
-    #             # 如果freeze则不训练 默认打开
-    #             param.requires_grad = 
-    # False
-    #             continue
-    #         param.requires_grad = True
-    # model.model.layers = model.model.layers[:4]
     if args.language_training_method == 'lora':
         peft_config = LoraConfig(
             # target_modules=r'.*language_model.*\.(q_proj|v_proj)', 
             target_modules=r'model.layers.*\.(q_proj|v_proj.multiway.[0-9]+)', 
             inference_mode=args.inference_mode, 
-            r=1, 
+            r=args.lora_r, 
             lora_alpha=args.lora_alpha, 
             lora_dropout=args.lora_dropout
         )
@@ -167,18 +150,18 @@ def main():
         model.print_trainable_parameters()
 
 
-    if args.gradient_checkpointing:
-        # abs do not use gradient checkpointing
-        # set vit gradient checkpointing
-        model.vision_model.apply(
-            partial(model.vision_model._set_gradient_checkpointing, value=True))
-        ic(model.vision_model.encoder.gradient_checkpointing)
-        # set llama gradient checkpointing
-        def make_inputs_require_grad(module, input, output):
-            output.requires_grad_(True)
-        model.language_model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
-        model.language_model.apply(
-            partial(model.language_model._set_gradient_checkpointing, value=True))
+    # if args.gradient_checkpointing:
+    #     # abs do not use gradient checkpointing
+    #     # set vit gradient checkpointing
+    #     # model.vision_model.apply(
+    #     #     partial(model.vision_model._set_gradient_checkpointing, value=True))
+    #     # ic(model.vision_model.encoder.gradient_checkpointing)
+    #     # set llama gradient checkpointing
+    #     def make_inputs_require_grad(module, input, output):
+    #         output.requires_grad_(True)
+    #     model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
+    #     model.apply(
+    #         partial(model._set_gradient_checkpointing, value=True))
 
     model.train()
 
