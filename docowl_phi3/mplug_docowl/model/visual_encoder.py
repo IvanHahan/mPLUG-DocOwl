@@ -451,7 +451,7 @@ class MplugDocOwlHReducerModel(PreTrainedModel):
     def __init__(self, config, language_hidden_size):
         super().__init__(config)
         self.config = config
-        self.ln_q = torch.nn.LayerNorm(self.config.hidden_size, eps=1e-6)
+        # self.ln_q = torch.nn.LayerNorm(self.config.hidden_size, eps=1e-6)
         self.conv_shape = (int(self.config.conv_shape.split('x')[0]), int(self.config.conv_shape.split('x')[1])) # 
         self.conv_patch=self.conv_shape[0]*self.conv_shape[1]
         ## feature interaction with a conv layer
@@ -491,6 +491,7 @@ class MplugDocOwlHReducerModel(PreTrainedModel):
         sequence_output = self.visual_fc(sequence_output) # L/conv_patch, B, h
         sequence_output = sequence_output.transpose(0, 1).contiguous() # B, s/4, h
         sequence_output = torch.cat([sequence_output, self.vit_eos.repeat(B, 1, 1)], dim=1)
+        # sequence_output = torch.cat([sequence_output, self.vit_eos.weight.t().unsqueeze(0).repeat(B, 1, 1)], dim=1)
 
         return sequence_output
 

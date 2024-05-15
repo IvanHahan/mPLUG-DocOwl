@@ -23,7 +23,6 @@ from torch.utils.data import Dataset, Subset
 from pipeline.utils import get_args
 
 from .processors.builder import build_processors
-from datasets import load_dataset
 import requests
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 ImageFile.MAX_IMAGE_PIXELS = None
@@ -53,7 +52,6 @@ from PIL import Image, ImageFile, ImageSequence
 from io import BytesIO
 import re
 from icecream import ic
-from datasets import load_dataset
 import requests
 from mplug_docowl.constants import IMAGE_TOKEN_INDEX, IGNORE_INDEX
 from mplug_docowl.mm_utils import process_images, tokenizer_image_token
@@ -124,6 +122,7 @@ class ImageIO():
         for image_url in images:
             # 支持tiff页面号指定 xxx.tiff.2
             # TODO https://github.com/Belval/pdf2image to support pdf. Now please convert pdf to png/jpg first
+            
             url_tmp =  image_url.split('.')
             if url_tmp[-1].isdigit():
                 image_url = '.'.join(url_tmp[:-1])

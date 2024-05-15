@@ -2,20 +2,19 @@ from .processors.builder import build_processors
 from .xgpt3_dataset import MultiModalDataset
 from mplug_docowl.processor import DocProcessor
 
-def train_valid_test_datasets_provider(data_path, config, tokenizer, seq_length=1024,image_root='ureader_images'):
+def train_valid_test_datasets_provider(data_path, tokenizer, seq_length=1024,image_root='ureader_images'):
     """Build train and valid datasets."""
     print('> building train and validation datasets for mPLUG-Owl ...')
     train_ds, valid_ds = build_train_valid_test_datasets(
         input_file=data_path,  
         tokenizer=tokenizer,
         max_length=seq_length, 
-        config=config,
         image_root=image_root)
     print("> finished creating mPLUG-Owl datasets ...")
 
     return train_ds, valid_ds
 
-def build_train_valid_test_datasets(input_file, tokenizer, max_length=80, config=None,image_root='ureader_images'):
+def build_train_valid_test_datasets(input_file, tokenizer, max_length=80, image_root='ureader_images'):
     # train_processors = build_processors(config['train_processors'])
     # valid_processors = build_processors(config['valid_processors'])
     processor = DocProcessor(448, add_textual_crop_indicator=True)

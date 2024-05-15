@@ -40,8 +40,9 @@ parser.add_argument('--bf16', action='store_true', default=False,
                     help='Run model in bfloat16 mode.')
 
 # Data
-parser.add_argument('--mm-config', type=str, default='configs/sft/release.yaml', help='Multimodal Config.')
-parser.add_argument('--image-root', type=str, default='ureader_images', help='Image folder.')
+parser.add_argument('--train-file', type=str)
+parser.add_argument('--test-file', type=str)
+parser.add_argument('--image-root', type=str, help='Image folder.')
 parser.add_argument('--num-workers', type=int, default=8,
                     help="Dataloader number of workers.")  
 
@@ -100,7 +101,7 @@ parser.add_argument('--logging-nan-inf-filter', action='store_true',
 parser.add_argument('--ddp-find-unused-parameters', action='store_true',
                     help='unused parameters finding.')
 parser.add_argument('--do-train', action='store_true', default=True,
-                    help='Whether to do training.')  
+                    help='Whether to do training.')
 parser.add_argument('--local_rank', type=int, default=-1,
                     help='Local rank')
 
@@ -119,11 +120,13 @@ def get_accumulation_step(args):
     return accumulation_step
     
 def main():
-    args, left_argv = parser.parse_known_args()  
+    args, left_argv = parser.parse_known_args()
+    ic(args)
     torch.distributed.init_process_group(backend="nccl")
     ic(left_argv)
-    config = Config(args.mm_config)
-    add_config_args(config, args)
+    ic(args)
+    # config = Config(args.mm_config)
+    # add_config_args(config, args)
     # args.patch_pos_embed_type = config.get('patch_pos_embed_type', 'post')
     # ic(args.patch_pos_embed_type)
     if args.global_batch_size is not None:
@@ -140,13 +143,12 @@ def main():
 
     del model.config.auto_map
     del model.config._name_or_path
+    del model.config.visual_config
     
     if args.language_training_method == 'lora':
         modules_to_save = [
             'lm_head',
-            # 'model.vision2text.visual_fc',
-            # 'model.vision2text.vit_eos',
-            'model.vision2text'
+            'model.vision2text',
         ]
         peft_config = LoraConfig(
             # target_modules=r'.*language_model.*\.(q_proj|v_proj)', 
@@ -179,7 +181,7 @@ def main():
     model.train()
 
     train_data, valid_data = train_valid_test_datasets_provider(
-        config.data_files,  config=config, 
+        [args.train_file, args.test_file],
         tokenizer=tokenizer, seq_length=args.seq_length,
         image_root=args.image_root,
     )
