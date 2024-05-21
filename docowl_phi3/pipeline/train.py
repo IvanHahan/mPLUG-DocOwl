@@ -18,6 +18,7 @@ from pipeline.data_utils import train_valid_test_datasets_provider
 from pipeline.utils import batchify, set_args
 from pipeline.trainer import CustomTrainer
 from pipeline.utils import add_config_args
+import os
 
 parser = argparse.ArgumentParser()
 # Model
@@ -50,7 +51,10 @@ parser.add_argument('--num-workers', type=int, default=8,
 parser.add_argument('--train-epochs', type=int, default=3,
                     help='Total number of epochs to train over all '
                     'training runs.')
-parser.add_argument('--micro-batch-size', type=int, default=2,
+parser.add_argument('--train-steps', type=int, default=None,
+                    help='Total number of epochs to train over all '
+                    'training runs.')
+parser.add_argument('--micro-batch-size', type=int, default=16,
                     help='Batch size per model instance (local batch size). '
                     'Global batch size is local batch size times data '
                     'parallel size times number of micro batches.')
@@ -102,8 +106,8 @@ parser.add_argument('--ddp-find-unused-parameters', action='store_true',
                     help='unused parameters finding.')
 parser.add_argument('--do-train', action='store_true', default=True,
                     help='Whether to do training.')
-parser.add_argument('--local_rank', type=int, default=-1,
-                    help='Local rank')
+# parser.add_argument('--local_rank', type=int, default=-1,
+#                     help='Local rank')
 
 parser.add_argument('--tensorboard-dir', type=str)
 parser.add_argument('--deepspeed', type=str, default=None)
@@ -111,7 +115,7 @@ parser.add_argument('--deepspeed', type=str, default=None)
 def get_accumulation_step(args):
     global_batch_size = args.global_batch_size
     batch_size = args.micro_batch_size
-    gpu_nums = dist.get_world_size()
+    gpu_nums = torch.cuda.device_count()
 
     accumulation_step = max(1,int(round(global_batch_size/(batch_size*gpu_nums))))
     if accumulation_step*(batch_size*gpu_nums) != global_batch_size:
@@ -124,7 +128,6 @@ def main():
     ic(args)
     torch.distributed.init_process_group(backend="nccl")
     ic(left_argv)
-    ic(args)
     # config = Config(args.mm_config)
     # add_config_args(config, args)
     # args.patch_pos_embed_type = config.get('patch_pos_embed_type', 'post')
@@ -151,8 +154,6 @@ def main():
             'model.vision2text',
         ]
         peft_config = LoraConfig(
-            # target_modules=r'.*language_model.*\.(q_proj|v_proj)', 
-            # target_modules=r'model.layers.*\.(q_proj|v_proj)', 
             target_modules=r'.*\.(q_proj|v_proj)', 
             modules_to_save=modules_to_save,
             inference_mode=args.inference_mode, 
@@ -161,22 +162,9 @@ def main():
             lora_dropout=args.lora_dropout
         )
         model = get_peft_model(model, peft_config)
-        # model.model.model.vision2text.vit_eos.requires_grad_(True)
 
         model.print_trainable_parameters()
 
-    # if args.gradient_checkpointing:
-    #     # abs do not use gradient checkpointing
-    #     # set vit gradient checkpointing
-    #     # model.vision_model.apply(
-    #     #     partial(model.vision_model._set_gradient_checkpointing, value=True))
-    #     # ic(model.vision_model.encoder.gradient_checkpointing)
-    #     # set llama gradient checkpointing
-    #     def make_inputs_require_grad(module, input, output):
-    #         output.requires_grad_(True)
-    #     model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
-    #     model.apply(
-    #         partial(model._set_gradient_checkpointing, value=True))
 
     model.train()
 
@@ -194,6 +182,7 @@ def main():
             warmup_steps=args.num_warmup_steps,
             do_train=args.do_train,
             num_train_epochs=args.train_epochs,
+            max_steps=args.train_steps,
             output_dir=args.save_path,
             logging_dir=args.tensorboard_dir,
             save_strategy='steps',

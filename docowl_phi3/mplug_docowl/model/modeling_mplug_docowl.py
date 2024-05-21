@@ -206,7 +206,7 @@ class MPLUGDocOwlLlamaForCausalLM(PhiForCausalLM, MPLUGDocOwlMetaForCausalLM):
     def __init__(self, config):
         super(PhiForCausalLM, self).__init__(config)
         self.model = MPLUGDocOwlPhiModel(config)
-        self.model.layers = self.model.layers[:2]
+        # self.model.layers = self.model.layers[:2]
 
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
 
